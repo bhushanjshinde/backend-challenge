@@ -9,6 +9,11 @@ function getAppById(id) {
   return allApps.find((x) => x.id === id);
 }
 
+function getAppsByUrl(url) {
+  const allApps = getAllApps();
+  return allApps.filter((x) => x.url === url);
+}
+
 function saveApp(app) {
   console.log(`Saving app ${app.id}. is_live = ${app.is_live}`);
 }
@@ -16,5 +21,6 @@ function saveApp(app) {
 module.exports = {
   getAllApps,
   getAppById,
+  getAppsByUrl,
   saveApp,
 };

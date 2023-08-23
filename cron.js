@@ -16,40 +16,30 @@ const appsRepository = require("./repositories/apps-repository");
 
 async function calculateIsLive() {
   const campaigns = await campaignRepository.getAllCampaigns();
-  const apps = appsRepository.getAllApps();
 
-  let liveReasons = {}; // To store the reason for each app
+  const liveCampaignUrls = new Set(campaigns.filter(campaign => campaign.status === 'running').map(campaign => campaign.redirect_url));
+  // Live apps by running campaign urls
+  const initialLiveApps = appsRepository.getAllApps().filter(app => liveCampaignUrls.has(app.url));
 
-  let appUrlToIdMap = {};
-  for (let app of apps) {
-    appUrlToIdMap[app.url] = app.id;
+  // Working out live status from links recursively.
+  for (const app of initialLiveApps) {
+    recursiveLiveStatus(app);
+  }
+}
+
+function recursiveLiveStatus(app) {
+  if (app.is_live) {
+    return;
   }
 
-  // Check each campaign to see if it makes an app live.
-  for (let campaign of campaigns) {
-    if (campaign.status === 'running') {
-      let appId = appUrlToIdMap[campaign.redirect_url];
-      if (appId) {
-        liveReasons[appId] = `App ${appId} is LIVE because campaign ${campaign.campaign_id} links to it and is running.`;
-      }
+  app.is_live = true;
+  appsRepository.saveApp(app);
+
+  for (const linkedUrl of app.links) {
+    const linkedApps = appsRepository.getAppsByUrl(linkedUrl);
+    for (const linkedApp of linkedApps) {
+      recursiveLiveStatus(linkedApp);
     }
-  }
-
-  // Check each app's links to see if they make any other apps live.
-  for (let app of apps) {
-    if (liveReasons[app.id]) {
-      for (let link of app.links) {
-        let linkedAppId = appUrlToIdMap[link];
-        if (linkedAppId && !liveReasons[linkedAppId]) {
-          liveReasons[linkedAppId] = `App ${linkedAppId} is LIVE because App ${app.id} is live and links to App ${linkedAppId}`;
-        }
-      }
-    }
-  }
-
-  // Print for each app from the first app. ToDo - Save object
-  for (let app of apps) {
-    console.log(liveReasons[app.id] || `App ${app.id} is NOT LIVE`);
   }
 }
 
