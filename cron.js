@@ -21,24 +21,21 @@ async function calculateIsLive() {
   // Live apps by running campaign urls
   const initialLiveApps = appsRepository.getAllApps().filter(app => liveCampaignUrls.has(app.url));
 
-  // Working out live status from links recursively.
-  for (const app of initialLiveApps) {
-    recursiveLiveStatus(app);
-  }
-}
+  while (initialLiveApps.length > 0) {
+    let currentApp = initialLiveApps.shift();
 
-function recursiveLiveStatus(app) {
-  if (app.is_live) {
-    return;
-  }
+    if (!currentApp.is_live) {
+      currentApp.is_live = true;
+      appsRepository.saveApp(currentApp);
 
-  app.is_live = true;
-  appsRepository.saveApp(app);
-
-  for (const linkedUrl of app.links) {
-    const linkedApps = appsRepository.getAppsByUrl(linkedUrl);
-    for (const linkedApp of linkedApps) {
-      recursiveLiveStatus(linkedApp);
+      for (const linkedUrl of currentApp.links) {
+        const linkedApps = appsRepository.getAppsByUrl(linkedUrl);
+        for (const linkedApp of linkedApps) {
+          if (!linkedApp.is_live) {
+            initialLiveApps.push(linkedApp);
+          }
+        }
+      }
     }
   }
 }
