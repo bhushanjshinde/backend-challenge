@@ -18,11 +18,10 @@ async function calculateIsLive() {
   const campaigns = await campaignRepository.getAllCampaigns();
 
   const liveCampaignUrls = new Set(campaigns.filter(campaign => campaign.status === 'running').map(campaign => campaign.redirect_url));
-  // Live apps by running campaign urls
-  const initialLiveApps = appsRepository.getAllApps().filter(app => liveCampaignUrls.has(app.url));
+  const queueLiveApps = appsRepository.getAllApps().filter(app => liveCampaignUrls.has(app.url));
 
-  while (initialLiveApps.length > 0) {
-    let currentApp = initialLiveApps.shift();
+  while (queueLiveApps.length > 0) {
+    let currentApp = queueLiveApps.shift();
 
     if (!currentApp.is_live) {
       currentApp.is_live = true;
@@ -32,7 +31,7 @@ async function calculateIsLive() {
         const linkedApps = appsRepository.getAppsByUrl(linkedUrl);
         for (const linkedApp of linkedApps) {
           if (!linkedApp.is_live) {
-            initialLiveApps.push(linkedApp);
+            queueLiveApps.push(linkedApp);
           }
         }
       }
