@@ -44,5 +44,3 @@ function recursiveLiveStatus(app) {
 }
 
 calculateIsLive();
-
-//ToDo - logs only onSave or log while traversing
